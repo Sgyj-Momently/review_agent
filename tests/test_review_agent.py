@@ -157,3 +157,11 @@ class ReviewAgentTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["project_id"], "sample")
         self.assertIn("review_status", response.json())
+
+    def test_metrics_endpoint_returns_prometheus_data(self):
+        client = TestClient(app)
+
+        response = client.get("/metrics")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("http_request_duration_seconds", response.text)
