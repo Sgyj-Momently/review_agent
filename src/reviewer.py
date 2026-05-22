@@ -30,6 +30,7 @@ def review_document(payload: dict[str, Any]) -> dict[str, Any]:
             "제외된 사진이 최종 본문에 직접 참조되지 않습니다.",
         ),
     ]
+    checks.extend(_quality_checks(markdown))
     checks.extend(_seo_checks(markdown, payload.get("target_keywords")))
     issue_count = sum(1 for check in checks if check["status"] != "pass")
     final_markdown = markdown + "\n" if markdown else "# Untitled\n\n검토 가능한 본문이 없습니다.\n"
@@ -140,6 +141,36 @@ def _check_chinese_leakage(text: str) -> None:
 
 def _check(name: str, passed: bool, message: str) -> dict[str, str]:
     return {"name": name, "status": "pass" if passed else "fail", "message": message}
+
+
+GENERIC_FILLER_PATTERNS = (
+    "이 장면은 여행의 흐름을 자연스럽게 이어준다",
+    "작은 장면들이 모여 하루의 분위기를 완성했다",
+    "사진 속 장면들을 바탕으로",
+)
+
+
+def _quality_checks(markdown: str) -> list[dict[str, str]]:
+    if not markdown:
+        return []
+    generic_hits = [
+        phrase
+        for phrase in GENERIC_FILLER_PATTERNS
+        if phrase in markdown
+    ]
+    repeated_plain_impressions = len(re.findall(r"(좋았다|인상적이었다|분위기가 좋았다)", markdown))
+    return [
+        _check(
+            "no_generic_filler",
+            not generic_hits,
+            "템플릿성 대체 문구가 최종 본문에 남아 있지 않습니다.",
+        ),
+        _check(
+            "no_repetitive_plain_impressions",
+            repeated_plain_impressions < 3,
+            "평범한 감상 표현이 과도하게 반복되지 않습니다.",
+        ),
+    ]
 
 
 def _references_excluded_photo(markdown: str, excluded_photos: list[Any]) -> bool:
