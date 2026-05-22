@@ -46,6 +46,34 @@ class ReviewAgentTest(TestCase):
         self.assertEqual(result["review_status"], "needs_attention")
         self.assertGreater(result["issue_count"], 0)
 
+    def test_flags_generic_filler_phrases(self):
+        result = review_document(
+            {
+                "styled_markdown": (
+                    "# 기록\n\n"
+                    "이 장면은 여행의 흐름을 자연스럽게 이어준다. "
+                    "작은 장면들이 모여 하루의 분위기를 완성했다."
+                ),
+            }
+        )
+
+        self.assertEqual(result["review_status"], "needs_attention")
+        filler_check = next(c for c in result["checks"] if c["name"] == "no_generic_filler")
+        self.assertEqual(filler_check["status"], "fail")
+
+    def test_flags_repeated_plain_impressions(self):
+        result = review_document(
+            {
+                "styled_markdown": (
+                    "# 기록\n\n"
+                    "분위기가 좋았다. 음식도 좋았다. 공간도 인상적이었다. 다시 봐도 좋았다."
+                ),
+            }
+        )
+
+        repeated_check = next(c for c in result["checks"] if c["name"] == "no_repetitive_plain_impressions")
+        self.assertEqual(repeated_check["status"], "fail")
+
     def test_seo_keywords_reflected_passes(self):
         result = review_document(
             {
