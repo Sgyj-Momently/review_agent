@@ -15,6 +15,7 @@ app = FastAPI(title="Review Agent API", version="0.1.0")
 class ReviewRequest(BaseModel):
     project_id: str = Field(min_length=1)
     styled_markdown: str
+    target_keywords: str | None = None
     photos: list[dict[str, Any]] = Field(default_factory=list)
     excluded_photos: list[dict[str, Any]] = Field(default_factory=list)
 
