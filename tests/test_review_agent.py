@@ -165,3 +165,18 @@ class ReviewAgentTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("http_request_duration_seconds", response.text)
+
+
+class StandardErrorEnvelopeTest(TestCase):
+    """ADR 005 단계 3: validation 실패 응답이 표준 envelope 형식인지 검증."""
+
+    def test_validation_error_returns_standard_envelope(self):
+        # project_id 누락 → RequestValidationError → 422 envelope
+        response = TestClient(app).post("/api/v1/reviews", json={"styled_markdown": "# only"})
+        self.assertEqual(response.status_code, 422)
+        body = response.json()
+        for key in ("error_code", "message", "user_message", "retryable", "details"):
+            self.assertIn(key, body)
+        self.assertEqual(body["error_code"], "VALIDATION_FAILED")
+        self.assertFalse(body["retryable"])
+        self.assertGreater(len(body["details"]), 0)
